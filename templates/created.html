@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Secret link ready</h1>
+    <p>Share the secret link, then each person picks a duck buddy.</p>
+    <p class="footer-note">Tip: bookmark your personal link on your home screen.</p>
+  </div>
+  <div class="card">
+    <h2>Shared link</h2>
+    <div class="link-card">{{ shared_link }}</div>
+    <h2 style="margin-top: 1.6rem;">Duck Buddy A</h2>
+    <div class="link-card">{{ user1_link }}</div>
+    <h2 style="margin-top: 1.6rem;">Duck Buddy B</h2>
+    <div class="link-card">{{ user2_link }}</div>
+  </div>
+</section>
+{% endblock %}

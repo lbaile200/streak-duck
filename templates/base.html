@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{ title or "Streak Duck" }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Work+Sans:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --ink: #101c1f;
+        --paper: #f7f3ea;
+        --accent: #d96b2b;
+        --accent-2: #2b7f95;
+        --gold: #f6c35c;
+        --shadow: rgba(17, 25, 26, 0.18);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Work Sans", "Verdana", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at top, #f9e7c5 0%, #f7f3ea 40%, #d9edf1 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .shell {
+        width: min(960px, 92vw);
+        padding: 3.5rem 2.5rem 4rem;
+        background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 244, 235, 0.9));
+        border-radius: 32px;
+        box-shadow: 0 24px 80px var(--shadow);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .shell::before,
+      .shell::after {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        opacity: 0.45;
+        z-index: 0;
+      }
+
+      .shell::before {
+        width: 280px;
+        height: 280px;
+        background: #f6c35c;
+        top: -120px;
+        right: -80px;
+      }
+
+      .shell::after {
+        width: 220px;
+        height: 220px;
+        background: #6bc1d1;
+        bottom: -90px;
+        left: -70px;
+      }
+
+      main {
+        position: relative;
+        z-index: 1;
+      }
+
+      h1,
+      h2 {
+        font-family: "Cinzel", "Georgia", serif;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin: 0 0 1rem;
+      }
+
+      h1 {
+        font-size: clamp(2rem, 3vw, 2.7rem);
+      }
+
+      p {
+        line-height: 1.7;
+        margin: 0 0 1.2rem;
+      }
+
+      .hero {
+        display: grid;
+        gap: 2rem;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        align-items: center;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.78);
+        border-radius: 24px;
+        padding: 1.75rem;
+        border: 1px solid rgba(217, 107, 43, 0.2);
+        box-shadow: 0 16px 40px rgba(17, 25, 26, 0.08);
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.6rem;
+        padding: 0.85rem 1.8rem;
+        border-radius: 999px;
+        border: none;
+        background: linear-gradient(120deg, var(--accent), #f29f63);
+        color: white;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        text-decoration: none;
+        box-shadow: 0 12px 24px rgba(217, 107, 43, 0.28);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 30px rgba(217, 107, 43, 0.32);
+      }
+
+      .link-card {
+        padding: 1rem 1.2rem;
+        border-radius: 16px;
+        background: rgba(43, 127, 149, 0.1);
+        border: 1px solid rgba(43, 127, 149, 0.25);
+        word-break: break-all;
+      }
+
+      .streak {
+        display: grid;
+        grid-template-columns: minmax(220px, 1fr) 1.2fr;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .streak img {
+        width: 100%;
+        border-radius: 28px;
+        border: 3px solid rgba(217, 107, 43, 0.2);
+        box-shadow: 0 18px 40px rgba(17, 25, 26, 0.16);
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.35rem 0.9rem;
+        border-radius: 999px;
+        background: var(--gold);
+        font-weight: 600;
+        letter-spacing: 0.05em;
+      }
+
+      .status {
+        padding: 0.8rem 1rem;
+        border-radius: 16px;
+        background: rgba(43, 127, 149, 0.12);
+        border: 1px dashed rgba(43, 127, 149, 0.35);
+      }
+
+      .footer-note {
+        font-size: 0.9rem;
+        opacity: 0.75;
+      }
+
+      @media (max-width: 720px) {
+        .shell {
+          padding: 2.5rem 1.6rem 3rem;
+        }
+
+        .streak {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <main>
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>

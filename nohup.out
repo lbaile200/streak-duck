@@ -1,0 +1,24 @@
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 128-234-617
+127.0.0.1 - - [03/Nov/2026 22:24:07] "POST /create HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:24:21] "GET /s/39SJoE6IPe_cXSb8pxNbfA/rDihca8rdxw HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:24:21] "[36mGET /static/ducks/duck_700.png HTTP/1.1[0m" 304 -
+127.0.0.1 - - [03/Nov/2026 22:24:22] "GET /s/39SJoE6IPe_cXSb8pxNbfA/rDihca8rdxw HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:24:22] "[36mGET /static/ducks/duck_700.png HTTP/1.1[0m" 304 -
+127.0.0.1 - - [03/Nov/2026 22:24:22] "GET /s/39SJoE6IPe_cXSb8pxNbfA/rDihca8rdxw HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:24:22] "[36mGET /static/ducks/duck_700.png HTTP/1.1[0m" 304 -
+127.0.0.1 - - [03/Nov/2026 22:25:09] "GET /s/39SJoE6IPe_cXSb8pxNbfA HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:25:10] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [03/Nov/2026 22:25:12] "GET /s/39SJoE6IPe_cXSb8pxNbfA/7cZwnVGE9tU HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:25:12] "GET /static/ducks/duck_700.png HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:25:24] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+127.0.0.1 - - [03/Nov/2026 22:26:04] "GET /s/39SJoE6IPe_cXSb8pxNbfA HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:26:04] "GET /s/39SJoE6IPe_cXSb8pxNbfA HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:26:05] "GET /s/39SJoE6IPe_cXSb8pxNbfA HTTP/1.1" 200 -
+127.0.0.1 - - [03/Nov/2026 22:26:05] "GET /s/39SJoE6IPe_cXSb8pxNbfA HTTP/1.1" 200 -

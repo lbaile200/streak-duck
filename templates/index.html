@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <div>
+    <h1>Streak Duck</h1>
+    <p>
+      Forge a secret daily ritual. Invite one other duck and keep your link alive—
+      each day you both check in, your streak rises and your duck grows more epic.
+    </p>
+    <form action="{{ url_for('create') }}" method="post">
+      <button class="button" type="submit">Create a secret link</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>How it works</h2>
+    <p>1. Create a secret link and share the two personal URLs.</p>
+    <p>2. Each of you visits your link daily.</p>
+    <p>3. When you both check in, the counter climbs.</p>
+    <p class="footer-note">Milestones at 10, 25, 50, 100, 300, 500, 700, 1000 days.</p>
+  </div>
+</section>
+{% endblock %}
