@@ -88,6 +88,7 @@
       }
 
       p {
+        overflow-wrap: anywhere;
         line-height: 1.7;
         margin: 0 0 1.2rem;
       }
@@ -168,6 +169,31 @@
         border: 1px dashed rgba(43, 127, 149, 0.35);
       }
 
+      .dashboard {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+        gap: 1.25rem;
+      }
+
+      .dashboard h2 { overflow-wrap: anywhere; }
+      .dashboard .status { margin-bottom: 1.2rem; }
+      .create-streak { margin: 2rem 0 1rem; }
+      nav { margin-bottom: 1.5rem; }
+      a { color: var(--accent-2); }
+      label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+      input {
+        width: 100%;
+        padding: 0.8rem;
+        border: 1px solid var(--accent-2);
+        border-radius: 12px;
+        font: inherit;
+        margin-bottom: 0.8rem;
+      }
+      button { font: inherit; }
+      details { margin-top: 1.5rem; }
+      .dashboard-link { margin: 0 0 2rem; }
+      summary { cursor: pointer; margin-bottom: 1rem; }
+
       .footer-note {
         font-size: 0.9rem;
         opacity: 0.75;
@@ -187,6 +213,9 @@
   <body>
     <div class="shell">
       <main>
+        {% if request.endpoint not in ('index', 'dashboard') %}
+        <nav aria-label="Dashboard"><a href="{{ url_for('index') }}">&larr; Back to dash</a></nav>
+        {% endif %}
         {% block content %}{% endblock %}
       </main>
     </div>

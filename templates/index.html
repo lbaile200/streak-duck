@@ -1,22 +1,43 @@
 {% extends "base.html" %}
 {% block content %}
-<section class="hero">
-  <div>
-    <h1>Streak Duck</h1>
-    <p>
-      Forge a secret daily ritual. Invite one other duck and keep your link alive—
-      each day you both check in, your streak rises and your duck grows more epic.
+<h1>Your streaks</h1>
+<p>Keep your daily rituals together. Open a streak to check in with your buddy.</p>
+{% if dashboard_link %}
+<details class="dashboard-link" open>
+  <summary>Save your private dashboard link</summary>
+  <p>Bookmark this page or save the link below. It brings back all your streaks after clearing browser data or switching devices.</p>
+  <div class="link-card"><a href="{{ dashboard_link }}">{{ dashboard_link }}</a></div>
+  <p class="footer-note">Keep this link private. Anyone with it can access your streaks. Share an individual streak’s invite link with your buddy.</p>
+</details>
+{% endif %}
+{% if streaks %}
+<section class="dashboard" aria-label="Your saved streaks">
+  {% for streak in streaks %}
+  <article class="card">
+    <h2>{{ streak.user1_name }} &amp; {{ streak.user2_name }}</h2>
+    <p class="badge">{{ streak.streak_count }} days</p>
+    <p>You are {{ streak.user1_name if streak.user_token == streak.user1_token else streak.user2_name }}.</p>
+    <p class="status">
+      {% if streak.last_visit_user1_date == today and streak.last_visit_user2_date == today %}
+        Both buddies checked in today.
+      {% elif (streak.last_visit_user1_date if streak.user_token == streak.user1_token else streak.last_visit_user2_date) == today %}
+        You checked in. Waiting on your buddy.
+      {% else %}
+        Ready for your check-in today.
+      {% endif %}
     </p>
-    <form action="{{ url_for('create') }}" method="post">
-      <button class="button" type="submit">Create a secret link</button>
-    </form>
-  </div>
-  <div class="card">
-    <h2>How it works</h2>
-    <p>1. Create a secret link and share the two personal URLs.</p>
-    <p>2. Each of you visits your link daily.</p>
-    <p>3. When you both check in, the counter climbs.</p>
-    <p class="footer-note">Milestones at 10, 25, 50, 100, 300, 500, 700, 1000 days.</p>
-  </div>
+    <a class="button" href="{{ url_for('secret', secret_id=streak.id, user_token=streak.user_token) }}">Open streak</a>
+  </article>
+  {% endfor %}
 </section>
+{% else %}
+<div class="card">
+  <h2>Your first duck awaits</h2>
+  <p>Create a streak and invite a buddy. Each day you both visit, your streak grows and your duck levels up.</p>
+</div>
+{% endif %}
+<form class="create-streak" action="{{ url_for('create') }}" method="post">
+  <button class="button" type="submit">Create a new streak</button>
+</form>
+<p class="footer-note">New streaks are saved to your current dashboard. To add an existing streak, open its personal link after opening your dashboard.</p>
 {% endblock %}

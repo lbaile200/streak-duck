@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import secrets
 import sqlite3
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, abort, redirect, render_template, request, url_for
+from flask import Flask, abort, make_response, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "streaks.db"
+DASHBOARD_COOKIE = "streakduck_dashboard"
 
 app = Flask(__name__)
 
@@ -28,10 +31,15 @@ def utc_today() -> str:
     return datetime.now(timezone.utc).date().isoformat()
 
 
-def get_db() -> sqlite3.Connection:
+@contextmanager
+def get_db() -> Iterator[sqlite3.Connection]:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        with conn:
+            yield conn
+    finally:
+        conn.close()
 
 
 def init_db() -> None:
@@ -50,6 +58,52 @@ def init_db() -> None:
             )
             """
         )
+
+        # Add names to existing databases without replacing streaks or links.
+        columns = {column["name"] for column in conn.execute("PRAGMA table_info(streaks)")}
+        for column, default in (("user1_name", "Duck A"), ("user2_name", "Duck B")):
+            if column not in columns:
+                conn.execute(f"ALTER TABLE streaks ADD COLUMN {column} TEXT NOT NULL DEFAULT '{default}'")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS dashboard_streaks (
+                dashboard_id TEXT NOT NULL,
+                streak_id TEXT NOT NULL,
+                user_token TEXT NOT NULL,
+                PRIMARY KEY (dashboard_id, streak_id)
+            )
+            """
+        )
+
+
+def remember_streak(secret_id: str, user_token: str, response):
+    dashboard_id = request.cookies.get(DASHBOARD_COOKIE) or secrets.token_urlsafe(32)
+    with get_db() as conn:
+        conn.execute(
+            """INSERT INTO dashboard_streaks (dashboard_id, streak_id, user_token)
+               VALUES (?, ?, ?)
+               ON CONFLICT(dashboard_id, streak_id)
+               DO UPDATE SET user_token = excluded.user_token""",
+            (dashboard_id, secret_id, user_token),
+        )
+    return set_dashboard_cookie(response, dashboard_id)
+
+
+def set_dashboard_cookie(response, dashboard_id: str):
+    response = make_response(response)
+    response.set_cookie(
+        DASHBOARD_COOKIE, dashboard_id, max_age=60 * 60 * 24 * 365,
+        httponly=True, samesite="Lax", secure=request.is_secure,
+    )
+    return response
+
+
+def buddy_number(row, user_token: str) -> int:
+    if user_token == row["user1_token"]:
+        return 1
+    if user_token == row["user2_token"]:
+        return 2
+    abort(404)
 
 
 def pick_duck_image(streak_count: int) -> str:
@@ -70,9 +124,45 @@ def next_milestone(streak_count: int) -> int | None:
 init_db()
 
 
+@app.after_request
+def protect_private_links(response):
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 @app.route("/")
 def index():
-    return render_template("index.html")
+    dashboard_id = request.cookies.get(DASHBOARD_COOKIE)
+    if dashboard_id:
+        with get_db() as conn:
+            exists = conn.execute(
+                "SELECT 1 FROM dashboard_streaks WHERE dashboard_id = ? LIMIT 1",
+                (dashboard_id,),
+            ).fetchone()
+        if exists:
+            return redirect(url_for("dashboard", dashboard_id=dashboard_id))
+    return render_template("index.html", streaks=[], today=utc_today())
+
+
+@app.route("/d/<dashboard_id>")
+def dashboard(dashboard_id: str):
+    with get_db() as conn:
+        streaks = conn.execute(
+            """SELECT s.*, d.user_token FROM dashboard_streaks d
+               JOIN streaks s ON s.id = d.streak_id
+               WHERE d.dashboard_id = ? ORDER BY s.created_at DESC, s.id""",
+            (dashboard_id,),
+        ).fetchall()
+    if not streaks:
+        abort(404)
+    return set_dashboard_cookie(
+        render_template(
+            "index.html", streaks=streaks, today=utc_today(),
+            dashboard_link=url_for("dashboard", dashboard_id=dashboard_id, _external=True),
+        ),
+        dashboard_id,
+    )
 
 
 @app.post("/create")
@@ -101,12 +191,12 @@ def create():
     user1_link = url_for("secret", secret_id=secret_id, user_token=user1_token, _external=True)
     user2_link = url_for("secret", secret_id=secret_id, user_token=user2_token, _external=True)
 
-    return render_template(
+    return remember_streak(secret_id, user1_token, render_template(
         "created.html",
         shared_link=shared_link,
         user1_link=user1_link,
         user2_link=user2_link,
-    )
+    ))
 
 
 @app.route("/s/<secret_id>")
@@ -125,6 +215,8 @@ def choose_duck(secret_id: str):
 
     return render_template(
         "choose.html",
+        user1_name=row["user1_name"],
+        user2_name=row["user2_name"],
         user1_link=user1_link,
         user2_link=user2_link,
     )
@@ -141,14 +233,8 @@ def secret(secret_id: str, user_token: str):
         if row is None:
             abort(404)
 
-        if user_token == row["user1_token"]:
-            user_col = "last_visit_user1_date"
-            viewer = "A"
-        elif user_token == row["user2_token"]:
-            user_col = "last_visit_user2_date"
-            viewer = "B"
-        else:
-            abort(404)
+        user_number = buddy_number(row, user_token)
+        user_col = f"last_visit_user{user_number}_date"
 
         today = utc_today()
         last_visit = row[user_col]
@@ -187,13 +273,37 @@ def secret(secret_id: str, user_token: str):
     duck_image = pick_duck_image(row["streak_count"])
     milestone = next_milestone(row["streak_count"])
 
-    return render_template(
+    return remember_streak(secret_id, user_token, render_template(
         "secret.html",
+        secret_id=secret_id,
+        user_token=user_token,
+        buddy_name=row[f"user{user_number}_name"],
+        partner_name=row[f"user{3 - user_number}_name"],
+        shared_link=url_for("choose_duck", secret_id=secret_id, _external=True),
         streak_count=row["streak_count"],
         duck_image=duck_image,
         milestone=milestone,
-        viewer=viewer,
         both_checked_in=both_checked_in,
+    ))
+
+
+@app.post("/s/<secret_id>/<user_token>/name")
+def rename_buddy(secret_id: str, user_token: str):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM streaks WHERE id = ?", (secret_id,)).fetchone()
+        if row is None:
+            abort(404)
+        user_number = buddy_number(row, user_token)
+        name = request.form.get("name", "").strip()
+        if not name or len(name) > 60:
+            abort(400, description="Buddy names must contain between 1 and 60 characters.")
+        conn.execute(
+            f"UPDATE streaks SET user{user_number}_name = ? WHERE id = ?",
+            (name, secret_id),
+        )
+    return remember_streak(
+        secret_id, user_token,
+        redirect(url_for("secret", secret_id=secret_id, user_token=user_token)),
     )
 
 
