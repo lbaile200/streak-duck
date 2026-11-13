@@ -179,5 +179,63 @@ class StreakDuckTests(unittest.TestCase):
         self.assertIn('SameSite=Lax', response.headers['Set-Cookie'])
 
 
+    def test_delete_confirmation_does_not_delete_or_check_in(self):
+        row = self.create()
+        delete_url = self.link(row) + '/delete'
+        self.assertIn(delete_url, self.client.get('/', follow_redirects=True).get_data(as_text=True))
+        response = self.client.get(delete_url)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('for both buddies', response.get_data(as_text=True))
+        self.assertIn('Cancel and return', response.get_data(as_text=True))
+        self.assertEqual(len(self.rows()), 1)
+        self.assertIsNone(self.rows()[0]['last_visit_user1_date'])
+        self.assertEqual(self.client.post(delete_url).status_code, 400)
+        self.assertEqual(self.client.post(delete_url, data={'confirm': 'no'}).status_code, 400)
+        self.assertEqual(len(self.rows()), 1)
+
+    def test_deletion_removes_only_selected_streak_from_every_dashboard(self):
+        row = self.create()
+        keep = self.create()
+        buddy = self.module.app.test_client()
+        buddy.get(self.link(row, 2))
+        buddy_path = self.dashboard_path(buddy)
+        response = self.client.post(self.link(row) + '/delete', data={'confirm': 'delete'}, follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(self.link(row), response.get_data(as_text=True))
+        self.assertIn(self.link(keep), response.get_data(as_text=True))
+        self.assertEqual([r['id'] for r in self.rows()], [keep['id']])
+        with self.module.get_db() as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM dashboard_streaks WHERE streak_id = ?', (row['id'],)).fetchone()[0], 0)
+        self.assertEqual(buddy.get(buddy_path).status_code, 200)
+        for path in (self.link(row), self.link(row, 2), f"/s/{row['id']}"):
+            self.assertEqual(self.client.get(path).status_code, 404)
+
+    def test_delete_last_streak_preserves_link_on_new_device_and_future_creations(self):
+        row = self.create()
+        path = self.dashboard_path()
+        self.client.post(self.link(row, 2) + '/delete', data={'confirm': 'delete'})
+        self.assertEqual(self.client.get('/').location, path)
+        self.module.init_db()
+        device = self.module.app.test_client()
+        response = device.get(path)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('Your first duck awaits', response.get_data(as_text=True))
+        self.assertIn('http://localhost' + path, response.get_data(as_text=True))
+        next_row = self.create(device)
+        self.assertEqual(self.dashboard_path(device), path)
+        self.assertIn(self.link(next_row), self.client.get(path).get_data(as_text=True))
+
+    def test_invalid_token_cannot_delete(self):
+        row = self.create()
+        stranger = self.module.app.test_client()
+        path = f"/s/{row['id']}/invalid/delete"
+        self.assertEqual(stranger.get(path).status_code, 404)
+        self.assertEqual(stranger.post(path, data={'confirm': 'delete'}).status_code, 404)
+        self.assertEqual(stranger.post('/s/missing/token/delete', data={'confirm': 'delete'}).status_code, 404)
+        self.assertEqual(len(self.rows()), 1)
+        with self.module.get_db() as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM dashboard_streaks').fetchone()[0], 1)
+
+
 if __name__ == '__main__':
     unittest.main()

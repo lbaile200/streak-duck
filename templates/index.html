@@ -27,6 +27,7 @@
       {% endif %}
     </p>
     <a class="button" href="{{ url_for('secret', secret_id=streak.id, user_token=streak.user_token) }}">Open streak</a>
+    <p class="delete-link"><a href="{{ url_for('delete_streak', secret_id=streak.id, user_token=streak.user_token) }}">Delete streak</a></p>
   </article>
   {% endfor %}
 </section>

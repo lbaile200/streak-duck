@@ -75,10 +75,17 @@ def init_db() -> None:
             """
         )
 
+        # Dashboards outlive their streaks, so saved links also work when empty.
+        conn.execute("CREATE TABLE IF NOT EXISTS dashboards (id TEXT PRIMARY KEY)")
+        conn.execute(
+            "INSERT OR IGNORE INTO dashboards (id) SELECT DISTINCT dashboard_id FROM dashboard_streaks"
+        )
+
 
 def remember_streak(secret_id: str, user_token: str, response):
     dashboard_id = request.cookies.get(DASHBOARD_COOKIE) or secrets.token_urlsafe(32)
     with get_db() as conn:
+        conn.execute("INSERT OR IGNORE INTO dashboards (id) VALUES (?)", (dashboard_id,))
         conn.execute(
             """INSERT INTO dashboard_streaks (dashboard_id, streak_id, user_token)
                VALUES (?, ?, ?)
@@ -137,7 +144,7 @@ def index():
     if dashboard_id:
         with get_db() as conn:
             exists = conn.execute(
-                "SELECT 1 FROM dashboard_streaks WHERE dashboard_id = ? LIMIT 1",
+                "SELECT 1 FROM dashboards WHERE id = ?",
                 (dashboard_id,),
             ).fetchone()
         if exists:
@@ -148,14 +155,14 @@ def index():
 @app.route("/d/<dashboard_id>")
 def dashboard(dashboard_id: str):
     with get_db() as conn:
+        if conn.execute("SELECT 1 FROM dashboards WHERE id = ?", (dashboard_id,)).fetchone() is None:
+            abort(404)
         streaks = conn.execute(
             """SELECT s.*, d.user_token FROM dashboard_streaks d
                JOIN streaks s ON s.id = d.streak_id
                WHERE d.dashboard_id = ? ORDER BY s.created_at DESC, s.id""",
             (dashboard_id,),
         ).fetchall()
-    if not streaks:
-        abort(404)
     return set_dashboard_cookie(
         render_template(
             "index.html", streaks=streaks, today=utc_today(),
@@ -305,6 +312,22 @@ def rename_buddy(secret_id: str, user_token: str):
         secret_id, user_token,
         redirect(url_for("secret", secret_id=secret_id, user_token=user_token)),
     )
+
+
+@app.route("/s/<secret_id>/<user_token>/delete", methods=["GET", "POST"])
+def delete_streak(secret_id: str, user_token: str):
+    with get_db() as conn:
+        row = conn.execute("SELECT * FROM streaks WHERE id = ?", (secret_id,)).fetchone()
+        if row is None:
+            abort(404)
+        buddy_number(row, user_token)
+        if request.method == "POST":
+            if request.form.get("confirm") != "delete":
+                abort(400, description="Confirm that you want to delete this streak.")
+            conn.execute("DELETE FROM dashboard_streaks WHERE streak_id = ?", (secret_id,))
+            conn.execute("DELETE FROM streaks WHERE id = ?", (secret_id,))
+            return redirect(url_for("index"))
+    return render_template("delete.html", streak=row, user_token=user_token)
 
 
 if __name__ == "__main__":

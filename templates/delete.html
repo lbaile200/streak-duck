@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Delete this streak?</h1>
+  <p><strong>{{ streak.user1_name }} &amp; {{ streak.user2_name }}</strong> &middot; {{ streak.streak_count }} days</p>
+  <p>This permanently deletes the streak and its history for both buddies and removes it from every dashboard. Its secret links will stop working. This cannot be undone.</p>
+  <form action="{{ url_for('delete_streak', secret_id=streak.id, user_token=user_token) }}" method="post">
+    <input type="hidden" name="confirm" value="delete" />
+    <button class="button button-danger" type="submit">Permanently delete streak</button>
+  </form>
+  <p style="margin-top: 1.2rem;"><a href="{{ url_for('index') }}">Cancel and return to dashboard</a></p>
+</div>
+{% endblock %}
